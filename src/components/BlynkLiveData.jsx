@@ -24,7 +24,7 @@ export default function BlynkLiveData({ intervalMs = 1500 }) {
   const labels = [
     { name: "Temperature", key: "v0", unit: "°C" },
     { name: "Humidity", key: "v2", unit: "%" },
-    { name: "Door Status", key: "v3", unit: " " },
+    { name: "Door Status", key: "v3", unit: "cm" },
     { name: "Smoke Level", key: "v4", unit: "ppm" },
     { name: "Tilt", key: "v5", unit: " " },
   ];
