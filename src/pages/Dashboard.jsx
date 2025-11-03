@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
+import BlynkLiveData from "../components/BlynkLiveData";
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -68,7 +69,6 @@ export default function Dashboard() {
 
   return (
     <div className="flex h-screen bg-[#EAF6FF]">
-      {/* Mobile Button */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
         className="lg:hidden p-3 fixed top-4 left-4 z-50 bg-white shadow-md rounded-lg"
@@ -76,7 +76,6 @@ export default function Dashboard() {
         ☰
       </button>
 
-      {/* Sidebar */}
       <aside
         className={`${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
@@ -88,54 +87,26 @@ export default function Dashboard() {
         </div>
 
         <nav className="space-y-4 font-medium">
-          <NavLink
-            to="/Dashboard"
-            className={({ isActive }) =>
-              `${navItem} ${isActive ? activeClass : normalClass}`
-            }
-          >
-            Dashboard
-          </NavLink>
-
-          <NavLink
-            to="/Analytics"
-            className={({ isActive }) =>
-              `${navItem} ${isActive ? activeClass : normalClass}`
-            }
-          >
-            Analytics
-          </NavLink>
-
-          <NavLink
-            to="/ShipmentDetails"
-            className={({ isActive }) =>
-              `${navItem} ${isActive ? activeClass : normalClass}`
-            }
-          >
-            Shipments
-          </NavLink>
-
-          <NavLink
-            to="/Sensors"
-            className={({ isActive }) =>
-              `${navItem} ${isActive ? activeClass : normalClass}`
-            }
-          >
-            Sensors
-          </NavLink>
-
-          <NavLink
-            to="/Settings"
-            className={({ isActive }) =>
-              `${navItem} ${isActive ? activeClass : normalClass}`
-            }
-          >
-            Settings
-          </NavLink>
+          {[
+            "Dashboard",
+            "Analytics",
+            "ShipmentDetails",
+            "Sensors",
+            "Settings",
+          ].map((name, i) => (
+            <NavLink
+              key={i}
+              to={`/${name}`}
+              className={({ isActive }) =>
+                `${navItem} ${isActive ? activeClass : normalClass}`
+              }
+            >
+              {name}
+            </NavLink>
+          ))}
         </nav>
       </aside>
 
-      {/* Main */}
       <div className="flex-1 p-6 overflow-auto bg-gradient-to-b from-[#F7FBFF] to-[#E8F4FF]">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-[#0A4A7A]">
@@ -144,29 +115,12 @@ export default function Dashboard() {
           <div className="w-10 h-10 bg-[#CFE8FF] rounded-full border border-[#A9D8FF]" />
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {[
-            { label: "Temperature", value: "3.5°C" },
-            { label: "Humidity", value: "85%" },
-            { label: "Vibration", value: "0.2 G" },
-            { label: "Light Exposure", value: "⚠ Alert", danger: true },
-          ].map((st, i) => (
-            <div
-              key={i}
-              className="p-5 rounded-xl bg-white/75 backdrop-blur-md border border-[#D6ECFF] shadow-sm hover:shadow-md transition"
-            >
-              <p className="text-[#0A4A7A] font-medium text-sm">{st.label}</p>
-              <p
-                className={`text-2xl font-bold ${
-                  st.danger ? "text-red-600" : "text-[#0A6FB7]"
-                }`}
-              >
-                {st.value}
-              </p>
-            </div>
-          ))}
+        {/* ✅ Live IoT Data */}
+        <div className="mb-6">
+          <BlynkLiveData intervalMs={1500} />
         </div>
+
+        {/* Static Stats */}
 
         {/* Table */}
         <div className="bg-white/80 backdrop-blur-xl border border-[#CFE8FF] rounded-xl p-5 shadow mb-8">

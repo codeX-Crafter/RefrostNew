@@ -160,8 +160,8 @@ export default function Analytics() {
               Environmental Trend Analysis
             </h3>
             <img
-              src="/trend-chart.png"
-              className="w-full h-[380px] rounded-xl object-cover"
+              src="/trend-chart.jpg"
+              className="w-full h-[540px] rounded-xl object-cover"
             />
           </motion.div>
 
@@ -175,18 +175,18 @@ export default function Analytics() {
               AI-Driven Insights
             </h3>
 
-            <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-md flex gap-2">
+            <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-lg flex gap-2">
               <AlertTriangle size={18} /> Alert: 3 shipments on Route MIA → ORD
               are trending towards a temperature breach. Recommended action:
               Adjust reefer unit settings.
             </div>
 
-            <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 p-3 rounded-xl text-md flex gap-2">
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 p-3 rounded-xl text-lg flex gap-2">
               <AlertTriangle size={18} /> Unusual vibration patterns detected
               for SHP-00452. Possible rough handling or equipment malfunction.
             </div>
 
-            <div className="bg-green-50 border border-green-200 text-green-700 p-3 rounded-xl text-md flex gap-2">
+            <div className="bg-green-50 border border-green-200 text-green-700 p-3 rounded-xl text-lg flex gap-2">
               <CheckCircle size={18} /> Fleet compliance is above 98% for the
               last 7 days. All monitored routes are within safe parameters.
             </div>
