@@ -1,168 +1,115 @@
-import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
-import BlynkLiveData from "../components/BlynkLiveData";
+import Navbar from "../components/Navbar";
 
 export default function Dashboard() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const shipments = [
-    {
-      id: "SHP-00123",
-      status: "OK",
-      origin: "Miami, FL",
-      dest: "Atlanta, GA",
-      temp: "3.5°C",
-      humidity: "85%",
-    },
-    {
-      id: "SHP-00124",
-      status: "Alert",
-      origin: "Los Angeles, CA",
-      dest: "Dallas, TX",
-      temp: "8.2°C",
-      humidity: "91%",
-    },
-    {
-      id: "SHP-00125",
-      status: "Warning",
-      origin: "New York, NY",
-      dest: "Chicago, IL",
-      temp: "5.1°C",
-      humidity: "88%",
-    },
-    {
-      id: "SHP-00126",
-      status: "OK",
-      origin: "Seattle, WA",
-      dest: "Denver, CO",
-      temp: "2.8°C",
-      humidity: "82%",
-    },
-  ];
-
-  const alerts = [
-    {
-      type: "High Temperature Alert",
-      text: "SHP-00124 exceeded 8°C threshold.",
-      time: "2 min ago",
-    },
-    {
-      type: "Low Battery Warning",
-      text: "Device DEV-881 is at 18%.",
-      time: "10 min ago",
-    },
-    {
-      type: "Light Exposure",
-      text: "SHP-00126 light sensor triggered.",
-      time: "29 min ago",
-    },
-    {
-      type: "Door Opened",
-      text: "SHP-00126 door sensor triggered.",
-      time: "45 min ago",
-    },
-  ];
-
-  const navItem = "block py-1 transition cursor-pointer";
-  const activeClass = "text-[#1C9CF6] font-semibold";
-  const normalClass = "text-[#0A4A7A] hover:text-[#1C9CF6]";
-
   return (
-    <div className="flex h-screen bg-[#EAF6FF]">
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden p-3 fixed top-4 left-4 z-50 bg-white shadow-md rounded-lg"
-      >
-        ☰
-      </button>
+    <div className="w-full h-screen bg-[#0b1623] text-white flex flex-col overflow-hidden">
+      {/* NAVBAR (logged in) */}
+      <Navbar isLoggedIn={true} />
 
-      <aside
-        className={`${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0 fixed lg:static z-40 w-60 h-full bg-white/80 backdrop-blur-xl border-r border-[#CFE8FF] p-6 shadow-lg transition-all`}
-      >
-        <div className="flex items-center gap-2 mb-8">
-          <img src="/image.png" className="w-9 h-9 rounded" />
-          <h2 className="text-2xl font-bold text-[#0A6FB7]">ReFrost</h2>
-        </div>
+      {/* MAIN GRID */}
+      <div className="flex-1 grid grid-cols-12 gap-6 px-8 py-6 pt-24 select-none">
+        {/* ========== LEFT SECTION (9 cols) ========== */}
+        <div className="col-span-8 flex flex-col gap-6">
+          {/* TOP STATS ROW */}
+          <div className="grid grid-cols-3 gap-5 transform -translate-x-4">
+            {/* ACTIVE SHIPMENTS */}
+            <div className="bg-[#122030] rounded-xl p-5 border border-white/10">
+              <p className="text-blue-200 text-sm mb-2">Active Shipments</p>
+              <h1 className="text-4xl font-semibold">1,204</h1>
+            </div>
 
-        <nav className="space-y-4 font-medium">
-          {[
-            "Dashboard",
-            "Analytics",
-            "ShipmentDetails",
-            "Sensors",
-            "Settings",
-          ].map((name, i) => (
-            <NavLink
-              key={i}
-              to={`/${name}`}
-              className={({ isActive }) =>
-                `${navItem} ${isActive ? activeClass : normalClass}`
-              }
-            >
-              {name}
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
+            {/* TEMPERATURE ALERTS */}
+            <div className="bg-[#122030] rounded-xl p-5 border border-white/10">
+              <p className="text-blue-200 text-sm mb-2">Temperature Alerts</p>
+              <h1 className="text-4xl font-semibold">17</h1>
+            </div>
 
-      <div className="flex-1 p-6 overflow-auto bg-gradient-to-b from-[#F7FBFF] to-[#E8F4FF]">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-[#0A4A7A]">
-            Cold Chain Dashboard
-          </h1>
-          <div className="w-10 h-10 bg-[#CFE8FF] rounded-full border border-[#A9D8FF]" />
-        </div>
+            {/* AT-RISK ZONES */}
+            <div className="bg-[#122030] rounded-xl p-5 border border-white/10">
+              <p className="text-blue-200 text-sm mb-2">At-Risk Zones</p>
+              <h1 className="text-4xl font-semibold">3</h1>
+            </div>
+          </div>
 
-        {/* ✅ Live IoT Data */}
-        <div className="mb-6">
-          <BlynkLiveData intervalMs={1500} />
-        </div>
+          {/* SEARCH + NEW SHIPMENT */}
+          <div className="flex items-center justify-between mt-2">
+            <input
+              placeholder="Search shipments..."
+              className="bg-[#0f1b29] rounded-lg px-4 py-2 w-[250px] border border-white/10 text-sm focus:outline-none"
+            />
+            <button className="bg-[#5fb9f2] text-[#07101c] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4aacdf] transition">
+              + New Shipment
+            </button>
+          </div>
 
-        {/* Static Stats */}
+          {/* ACTIVE SHIPMENTS TABLE */}
+          <div className="bg-[#122030] flex-1 rounded-xl p-5 border border-white/10 overflow-hidden">
+            <h2 className="text-lg font-semibold mb-4">Active Shipments</h2>
 
-        {/* Table */}
-        <div className="bg-white/80 backdrop-blur-xl border border-[#CFE8FF] rounded-xl p-5 shadow mb-8">
-          <h2 className="font-bold text-lg text-[#0A4A7A] mb-3">
-            Shipment Overview
-          </h2>
-
-          <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-[#F3FAFF] text-[#0A4A7A] border-b border-[#D6ECFF]">
+              <thead className="text-blue-300 text-xs border-b border-white/10">
                 <tr>
-                  <th className="py-2 text-left">Shipment ID</th>
-                  <th>Status</th>
-                  <th>Origin</th>
-                  <th>Destination</th>
-                  <th>Temp</th>
-                  <th>Humidity</th>
+                  <th className="pb-2 text-left">Shipment ID</th>
+                  <th className="pb-2 text-left">Origin</th>
+                  <th className="pb-2 text-left">Destination</th>
+                  <th className="pb-2 text-left">Status</th>
+                  <th className="pb-2 text-left">Temp.</th>
+                  <th className="pb-2 text-left">ETA</th>
                 </tr>
               </thead>
-              <tbody>
-                {shipments.map((s) => (
-                  <tr key={s.id} className="border-b hover:bg-[#F3FAFF]">
-                    <td className="py-2 font-semibold text-[#1C9CF6]">
-                      {s.id}
-                    </td>
+
+              <tbody className="divide-y divide-white/5">
+                {[
+                  {
+                    id: "#RF58923",
+                    origin: "Miami, FL",
+                    dest: "Atlanta, GA",
+                    status: "In Transit",
+                    color: "bg-green-600/30 text-green-300",
+                    temp: "2.1°C",
+                    eta: "2h 15m",
+                  },
+                  {
+                    id: "#RF58922",
+                    origin: "Seattle, WA",
+                    dest: "Portland, OR",
+                    status: "Delayed",
+                    color: "bg-yellow-600/30 text-yellow-300",
+                    temp: "3.5°C",
+                    eta: "45m",
+                  },
+                  {
+                    id: "#RF58921",
+                    origin: "Denver, CO",
+                    dest: "Houston, TX",
+                    status: "In Transit",
+                    color: "bg-green-600/30 text-green-300",
+                    temp: "1.8°C",
+                    eta: "8h 30m",
+                  },
+                  {
+                    id: "#RF58919",
+                    origin: "New York, NY",
+                    dest: "Boston, MA",
+                    status: "Delivered",
+                    color: "bg-blue-600/30 text-blue-300",
+                    temp: "2.5°C",
+                    eta: "-",
+                  },
+                ].map((row, i) => (
+                  <tr key={i} className="h-12">
+                    <td>{row.id}</td>
+                    <td>{row.origin}</td>
+                    <td>{row.dest}</td>
                     <td>
                       <span
-                        className={`px-2 py-1 text-xs rounded-full font-semibold ${
-                          s.status === "OK"
-                            ? "bg-green-100 text-green-700"
-                            : s.status === "Warning"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
+                        className={`px-2 py-1 rounded-md text-xs ${row.color}`}
                       >
-                        {s.status}
+                        {row.status}
                       </span>
                     </td>
-                    <td>{s.origin}</td>
-                    <td>{s.dest}</td>
-                    <td>{s.temp}</td>
-                    <td>{s.humidity}</td>
+                    <td>{row.temp}</td>
+                    <td>{row.eta}</td>
                   </tr>
                 ))}
               </tbody>
@@ -170,22 +117,26 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Alerts */}
-        <div className="bg-white/75 backdrop-blur-lg rounded-xl p-5 border border-[#D6ECFF] shadow">
-          <h2 className="font-bold text-lg text-[#0A4A7A] mb-3">
-            Active Alerts
-          </h2>
-          <div className="flex gap-4 overflow-x-auto pb-2">
-            {alerts.map((a, i) => (
-              <div
-                key={i}
-                className="p-4 min-w-[220px] bg-[#F7FBFF] border border-[#CFE8FF] rounded-lg shadow-sm hover:shadow transition"
-              >
-                <p className="font-bold text-red-600">{a.type}</p>
-                <p className="text-sm text-[#0A4A7A]">{a.text}</p>
-                <p className="text-xs text-gray-500">{a.time}</p>
-              </div>
-            ))}
+        {/* ========== RIGHT SECTION (4 cols) ========== */}
+        <div className="col-span-4 flex flex-col gap-6">
+          {/* LIVE SHIPMENTS MAP */}
+          <div className="bg-[#122030] rounded-xl p-5 border border-white/10 flex flex-col items-center justify-center h-[300px]">
+            <h2 className="text-lg font-semibold mb-4">Live Shipments Map</h2>
+
+            <img
+              src="/map-demo.png"
+              className="w-full h-full rounded-xl object-cover"
+              alt="map"
+            />
+          </div>
+
+          {/* LIVE ALERTS */}
+          <div className="bg-[#122030] rounded-xl p-5 border border-white/10 flex-1">
+            <h2 className="text-lg font-semibold mb-4">Live Alerts</h2>
+
+            <div className="text-blue-200 text-sm">
+              • No critical alerts right now.
+            </div>
           </div>
         </div>
       </div>
