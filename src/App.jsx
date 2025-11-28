@@ -5,6 +5,7 @@ import Analytics from "./pages/Analytics";
 import Sensors from "./pages/Sensors";
 import Landing from "./pages/Landing";
 import Settings from "./pages/Settings";
+import SensorDetails from "./pages/SensorDetails";
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
       <Route path="/" element={<Landing />} />
       <Route path="/Dashboard" element={<Dashboard />} />
       <Route path="/ShipmentDetails" element={<ShipmentDetails />} />
+      <Route path="/SensorDetails" element={<SensorDetails />} />
       <Route path="/Analytics" element={<Analytics />} />
       <Route path="/Sensors" element={<Sensors />} />
       <Route path="/Settings" element={<Settings />} />
