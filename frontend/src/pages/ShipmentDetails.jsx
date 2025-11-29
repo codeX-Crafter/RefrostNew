@@ -1,11 +1,14 @@
 import React, { useState } from "react";
 import { Truck, MapPin, Calendar } from "lucide-react";
+import Navbar from "../components/Navbar";
 
 export default function ShipmentDetails() {
   const [range, setRange] = useState("24H");
 
   return (
-    <div className="min-h-screen bg-[#0D1117] text-white px-10 py-8">
+    <div className="min-h-screen bg-[#0D1117] text-white px-10 py-24">
+      <Navbar />
+
       {/* Breadcrumb */}
       <div className="text-sm text-gray-400 mb-3">
         All Shipments / <span className="text-white">Shipment #SH123</span>
@@ -45,13 +48,11 @@ export default function ShipmentDetails() {
           <SensorTable />
         </div>
 
-        {/* Journey Timeline (NO vertical line) */}
+        {/* Journey Timeline */}
         <div className="bg-[#111827] rounded-2xl p-6">
           <h3 className="text-xl font-semibold mb-5">Journey Timeline</h3>
 
           <div className="relative pl-6">
-            {/* removed vertical line */}
-
             <TimelineStep
               icon={<Truck className="w-5 h-5 text-blue-400" />}
               title="In Transit"
@@ -90,12 +91,11 @@ export default function ShipmentDetails() {
               <button
                 key={r}
                 onClick={() => setRange(r)}
-                className={`px-4 py-1.5 rounded-lg text-sm border transition-colors
-                  ${
-                    range === r
-                      ? "bg-blue-600 border-blue-600"
-                      : "border-gray-700 text-gray-300"
-                  }`}
+                className={`px-4 py-1.5 rounded-lg text-sm border transition-colors ${
+                  range === r
+                    ? "bg-blue-600 border-blue-600"
+                    : "border-gray-700 text-gray-300"
+                }`}
               >
                 {r}
               </button>
@@ -236,7 +236,6 @@ function SensorTable() {
             <th className="pb-3">Status</th>
           </tr>
         </thead>
-
         <tbody>
           {sensors.map((s) => (
             <tr
@@ -274,7 +273,7 @@ function SensorTable() {
   );
 }
 
-/* Timeline step (no vertical line needed) */
+/* Timeline step */
 function TimelineStep({ icon, title, subtitle, date, active }) {
   return (
     <div className="relative mb-8 pl-6">
@@ -287,7 +286,6 @@ function TimelineStep({ icon, title, subtitle, date, active }) {
           {icon}
         </div>
       </div>
-
       <div className="ml-10">
         <div className="flex items-center justify-between">
           <div
