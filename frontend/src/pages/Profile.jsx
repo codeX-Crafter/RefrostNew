@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 
 const Profile = () => {
@@ -13,9 +13,27 @@ const Profile = () => {
   const [plan, setPlan] = useState("starter");
   const [image, setImage] = useState(null);
 
+  // Load saved image on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("profileImage");
+    if (saved) setImage(saved);
+  }, []);
+
+  // Convert image to Base64 and save globally
   const uploadImage = (e) => {
     const file = e.target.files[0];
-    if (file) setImage(URL.createObjectURL(file));
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result;
+      setImage(base64);
+
+      // Save so navbar also updates
+      localStorage.setItem("profileImage", base64);
+    };
+
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -74,7 +92,10 @@ const Profile = () => {
             {isEditing && (
               <>
                 <button
-                  onClick={() => setImage(null)}
+                  onClick={() => {
+                    setImage(null);
+                    localStorage.removeItem("profileImage");
+                  }}
                   className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600"
                 >
                   Delete
@@ -91,7 +112,6 @@ const Profile = () => {
           {/* DETAILS CARD */}
           <div className="bg-[#122030] p-6 rounded-xl border border-white/10 grid grid-cols-2 gap-6">
 
-            {/* Full Name */}
             <div>
               <label className="text-gray-400 text-sm">Full Name</label>
               <input
@@ -105,7 +125,6 @@ const Profile = () => {
               />
             </div>
 
-            {/* Job */}
             <div>
               <label className="text-gray-400 text-sm">Job Title</label>
               <input
@@ -119,7 +138,6 @@ const Profile = () => {
               />
             </div>
 
-            {/* Email */}
             <div>
               <label className="text-gray-400 text-sm">Email</label>
               <input
@@ -133,7 +151,6 @@ const Profile = () => {
               />
             </div>
 
-            {/* Contact */}
             <div>
               <label className="text-gray-400 text-sm">Contact</label>
               <input
@@ -147,7 +164,6 @@ const Profile = () => {
               />
             </div>
 
-            {/* Company */}
             <div className="col-span-2">
               <label className="text-gray-400 text-sm">Company</label>
               <input
@@ -177,7 +193,9 @@ const Profile = () => {
               <button
                 disabled={!isEditing}
                 className={`px-4 py-2 rounded-lg border ${
-                  plan === "starter" ? "bg-[#5fb9f2] text-black" : "bg-gray-700 hover:bg-gray-600"
+                  plan === "starter"
+                    ? "bg-[#5fb9f2] text-black"
+                    : "bg-gray-700 hover:bg-gray-600"
                 }`}
                 onClick={() => setPlan("starter")}
               >
@@ -187,7 +205,9 @@ const Profile = () => {
               <button
                 disabled={!isEditing}
                 className={`px-4 py-2 rounded-lg border ${
-                  plan === "enterprise" ? "bg-[#5fb9f2] text-black" : "bg-gray-700 hover:bg-gray-600"
+                  plan === "enterprise"
+                    ? "bg-[#5fb9f2] text-black"
+                    : "bg-gray-700 hover:bg-gray-600"
                 }`}
                 onClick={() => setPlan("enterprise")}
               >
