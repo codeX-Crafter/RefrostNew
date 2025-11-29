@@ -1,197 +1,217 @@
 import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
+import Navbar from "../components/Navbar";
 
 export default function Settings() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const navItem = "block py-1 transition cursor-pointer";
-  const activeClass = "text-[#1C9CF6] font-semibold";
-  const normalClass = "text-[#0A4A7A] hover:text-[#1C9CF6]";
+  // -------- DEFAULT VALUES --------
+  const defaultValues = {
+    tempLower: -10,
+    tempUpper: 30,
+    humidityLower: 20,
+    humidityUpper: 60,
+    emailAlerts: true,
+    smsAlerts: false,
+    language: "English (US)",
+  };
+
+  // -------- STATE --------
+  const [settings, setSettings] = useState(defaultValues);
+
+  const handleChange = (field, value) => {
+    setSettings((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const resetToDefault = () => {
+    setSettings(defaultValues);
+  };
+
+  const saveChanges = () => {
+    console.log("Saved Settings:", settings);
+    alert("Settings saved!");
+  };
+
+  // Ideal temp auto-calculated from lower/upper
+  const idealTemp = (Number(settings.tempLower) + Number(settings.tempUpper)) / 2;
 
   return (
-    <div className="flex h-screen bg-[#EAF6FF]">
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden p-3 fixed top-4 left-4 z-50 bg-white shadow-md rounded-lg"
-      >
-        ☰
-      </button>
+    <div className="w-full min-h-screen bg-[#08121f] text-white flex flex-col">
+      {/* NAVBAR SAME AS DASHBOARD */}
+      <Navbar isLoggedIn={true} />
 
-      <aside
-        className={`${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0 fixed lg:static z-40 w-60 h-full bg-white/80 backdrop-blur-xl border-r border-[#CFE8FF] p-6 shadow-lg transition-all`}
-      >
-        <div className="flex items-center gap-2 mb-8">
-          <img src="/image.png" className="w-9 h-9 rounded" />
-          <h2 className="text-2xl font-bold text-[#0A6FB7]">ReFrost</h2>
-        </div>
+      <div className="w-full max-w-5xl mx-auto pt-24 pb-16 px-6 space-y-10">
 
-        <nav className="space-y-4 font-medium">
-          <NavLink
-            to="/Dashboard"
-            className={({ isActive }) =>
-              `${navItem} ${isActive ? activeClass : normalClass}`
-            }
-          >
-            Dashboard
-          </NavLink>
-          <NavLink
-            to="/Analytics"
-            className={({ isActive }) =>
-              `${navItem} ${isActive ? activeClass : normalClass}`
-            }
-          >
-            Analytics
-          </NavLink>
-          <NavLink
-            to="/ShipmentDetails"
-            className={({ isActive }) =>
-              `${navItem} ${isActive ? activeClass : normalClass}`
-            }
-          >
-            Shipments
-          </NavLink>
-          <NavLink
-            to="/Sensors"
-            className={({ isActive }) =>
-              `${navItem} ${isActive ? activeClass : normalClass}`
-            }
-          >
-            Sensors
-          </NavLink>
-          <NavLink
-            to="/Settings"
-            className={({ isActive }) =>
-              `${navItem} ${isActive ? activeClass : normalClass}`
-            }
-          >
-            Settings
-          </NavLink>
-        </nav>
-      </aside>
+        {/* PAGE TITLE */}
+        <h1 className="text-3xl font-semibold">Sensor & App Settings</h1>
 
-      <div className="flex-1 p-6 overflow-auto bg-gradient-to-b from-[#F7FBFF] to-[#E8F4FF]">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-[#0A4A7A]">System Settings</h1>
-          <div className="w-10 h-10 bg-[#CFE8FF] rounded-full border border-[#A9D8FF]" />
-        </div>
+        {/* ---------------- SENSOR SETTINGS ---------------- */}
+        <div className="bg-[#0d1b2a] p-6 rounded-xl border border-gray-700 space-y-6">
 
-        {/* Notification Controls */}
-        <section className="bg-white/80 backdrop-blur-xl border border-[#CFE8FF] rounded-xl p-6 shadow mb-6">
-          <h2 className="font-bold text-lg text-[#0A4A7A] mb-4">
-            Notification Preferences
-          </h2>
+          <h2 className="text-xl font-semibold">Sensor Thresholds</h2>
 
-          {[
-            "Email Alerts",
-            "Push Notifications",
-            "SMS Alerts",
-            "Critical Alert Priority",
-            "Device Offline Alerts",
-          ].map((s) => (
-            <label
-              key={s}
-              className="flex justify-between py-2 items-center text-[#0A4A7A]"
-            >
-              {s}
-              <input
-                type="checkbox"
-                className="accent-[#1C9CF6] h-5 w-5"
-                defaultChecked
-              />
-            </label>
-          ))}
-        </section>
+          {/* TEMPERATURE */}
+          <div className="bg-[#0b1728] p-4 rounded-xl border border-gray-700">
+            <h3 className="text-lg font-semibold">Temperature</h3>
+            <p className="text-gray-400 text-sm mb-4">
+              Set acceptable temperature limits for your sensors.
+            </p>
 
-        {/* Alert Thresholds */}
-        <section className="bg-white/80 backdrop-blur-xl border border-[#CFE8FF] rounded-xl p-6 shadow mb-6">
-          <h2 className="font-bold text-lg text-[#0A4A7A] mb-4">
-            Alert Thresholds
-          </h2>
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <label className="text-gray-400 text-sm">Lower Threshold (°C)</label>
+                <input
+                  type="number"
+                  value={settings.tempLower}
+                  onChange={(e) => handleChange("tempLower", e.target.value)}
+                  className="w-full mt-1 p-2 rounded-lg bg-[#08121f] border border-gray-700"
+                />
+              </div>
 
-          <div className="grid gap-4">
-            <div>
-              <p className="text-sm font-medium text-[#0A4A7A] mb-1">
-                Max Temperature Threshold (°C)
-              </p>
-              <input
-                type="range"
-                min="0"
-                max="15"
-                className="w-full accent-[#1C9CF6]"
-              />
+              <div>
+                <label className="text-gray-400 text-sm">Upper Threshold (°C)</label>
+                <input
+                  type="number"
+                  value={settings.tempUpper}
+                  onChange={(e) => handleChange("tempUpper", e.target.value)}
+                  className="w-full mt-1 p-2 rounded-lg bg-[#08121f] border border-gray-700"
+                />
+              </div>
             </div>
 
-            <div>
-              <p className="text-sm font-medium text-[#0A4A7A] mb-1">
-                Humidity Limit (%)
-              </p>
-              <input
-                type="range"
-                min="40"
-                max="100"
-                className="w-full accent-[#1C9CF6]"
-              />
-            </div>
-
-            <div>
-              <p className="text-sm font-medium text-[#0A4A7A] mb-1">
-                Light Sensitivity Level
-              </p>
-              <input
-                type="range"
-                min="1"
-                max="10"
-                className="w-full accent-[#1C9CF6]"
-              />
+            {/* IDEAL TEMP — NO SLIDER */}
+            <div className="mt-6 bg-[#08121f] p-3 rounded-lg border border-gray-700">
+              <p className="text-gray-300 text-sm">Ideal Temperature (Auto Calculated)</p>
+              <p className="text-xl font-semibold mt-1">{idealTemp.toFixed(1)}°C</p>
             </div>
           </div>
 
-          <button className="mt-4 px-4 py-2 bg-[#1C9CF6] text-white font-medium rounded-lg hover:bg-[#1480D1] transition">
-            Update Thresholds
-          </button>
-        </section>
+          {/* HUMIDITY */}
+          <div className="bg-[#0b1728] p-4 rounded-xl border border-gray-700">
+            <h3 className="text-lg font-semibold">Humidity</h3>
+            <p className="text-gray-400 text-sm mb-4">
+              Configure acceptable humidity levels.
+            </p>
 
-        {/* Security */}
-        <section className="bg-white/80 backdrop-blur-xl border border-[#CFE8FF] rounded-xl p-6 shadow mb-6">
-          <h2 className="font-bold text-lg text-[#0A4A7A] mb-4">
-            Security & Access
-          </h2>
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <label className="text-gray-400 text-sm">Lower Threshold (%)</label>
+                <input
+                  type="number"
+                  value={settings.humidityLower}
+                  onChange={(e) => handleChange("humidityLower", e.target.value)}
+                  className="w-full mt-1 p-2 rounded-lg bg-[#08121f] border border-gray-700"
+                />
+              </div>
 
-          <button className="px-4 py-2 bg-[#ff4b4b] text-white rounded-lg font-medium hover:bg-[#e53d3d] transition">
-            Reset Password
-          </button>
-        </section>
+              <div>
+                <label className="text-gray-400 text-sm">Upper Threshold (%)</label>
+                <input
+                  type="number"
+                  value={settings.humidityUpper}
+                  onChange={(e) => handleChange("humidityUpper", e.target.value)}
+                  className="w-full mt-1 p-2 rounded-lg bg-[#08121f] border border-gray-700"
+                />
+              </div>
+            </div>
+          </div>
 
-        {/* System */}
-        <section className="bg-white/80 backdrop-blur-xl border border-[#CFE8FF] rounded-xl p-6 shadow">
-          <h2 className="font-bold text-lg text-[#0A4A7A] mb-4">
-            System Controls
-          </h2>
+          {/* BUTTONS */}
+          <div className="flex justify-end gap-4 pt-2">
+            <button
+              onClick={resetToDefault}
+              className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition"
+            >
+              Reset to Default
+            </button>
 
-          <label className="flex justify-between items-center py-2 text-[#0A4A7A]">
-            Dark Mode
-            <input type="checkbox" className="accent-[#1C9CF6] h-5 w-5" />
-          </label>
+            <button
+              onClick={saveChanges}
+              className="px-4 py-2 bg-blue-500 rounded-lg hover:bg-blue-600 transition"
+            >
+              Save Changes
+            </button>
+          </div>
+        </div>
 
-          <label className="flex justify-between items-center py-2 text-[#0A4A7A]">
-            Auto Firmware Updates
-            <input
-              type="checkbox"
-              className="accent-[#1C9CF6] h-5 w-5"
-              defaultChecked
-            />
-          </label>
+        {/* ---------------- NOTIFICATIONS ---------------- */}
+        <div className="bg-[#0d1b2a] p-6 rounded-xl border border-gray-700 space-y-6">
+          <h2 className="text-xl font-semibold">Notifications</h2>
 
-          <label className="flex justify-between items-center py-2 text-[#0A4A7A]">
-            Data Sync
-            <input
-              type="checkbox"
-              className="accent-[#1C9CF6] h-5 w-5"
-              defaultChecked
-            />
-          </label>
-        </section>
+          <div className="bg-[#0b1728] p-4 rounded-xl border border-gray-700">
+            <h3 className="text-lg font-semibold">Alert Preferences</h3>
+            <p className="text-gray-400 text-sm mb-4">
+              Choose how alerts are delivered when thresholds are breached.
+            </p>
+
+            {/* EMAIL ALERTS */}
+            <div className="flex items-center justify-between py-3">
+              <span>Email Alerts</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={settings.emailAlerts}
+                  onChange={(e) => handleChange("emailAlerts", e.target.checked)}
+                />
+                <div
+                  className="
+                    w-11 h-6 bg-gray-600 rounded-full peer peer-focus:ring-4
+                    peer-focus:ring-blue-800 peer-checked:bg-blue-500
+                    after:content-[''] after:absolute after:top-0.5 after:left-[4px]
+                    after:bg-white after:border-gray-300 after:border 
+                    after:rounded-full after:h-5 after:w-5 
+                    after:transition-all peer-checked:after:translate-x-full
+                  "
+                ></div>
+              </label>
+            </div>
+
+            {/* SMS ALERTS */}
+            <div className="flex items-center justify-between py-3">
+              <span>SMS Alerts</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={settings.smsAlerts}
+                  onChange={(e) => handleChange("smsAlerts", e.target.checked)}
+                />
+                <div
+                  className="
+                    w-11 h-6 bg-gray-600 rounded-full peer peer-focus:ring-4
+                    peer-focus:ring-blue-800 peer-checked:bg-blue-500
+                    after:content-[''] after:absolute after:top-0.5 after:left-[4px]
+                    after:bg-white after:border-gray-300 after:border 
+                    after:rounded-full after:h-5 after:w-5 
+                    after:transition-all peer-checked:after:translate-x-full
+                  "
+                ></div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* ---------------- GENERAL ---------------- */}
+        <div className="bg-[#0d1b2a] p-6 rounded-xl border border-gray-700 space-y-6">
+          <h2 className="text-xl font-semibold">General</h2>
+
+          <div className="bg-[#0b1728] p-4 rounded-xl border border-gray-700 space-y-4">
+            <div className="flex flex-col">
+              <label className="text-gray-400 text-sm">Language</label>
+              <select
+                value={settings.language}
+                onChange={(e) => handleChange("language", e.target.value)}
+                className="mt-1 p-2 bg-[#08121f] rounded-lg border border-gray-700"
+              >
+                <option>English (US)</option>
+                <option>English (UK)</option>
+                <option>Hindi</option>
+                <option>German</option>
+                <option>French</option>
+                <option>Spanish</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );
