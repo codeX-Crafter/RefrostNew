@@ -1,5 +1,6 @@
 import React from "react";
 import { Search } from "lucide-react";
+import Navbar from "../components/Navbar";
 
 export default function AlertHistory() {
   const alerts = [
@@ -57,77 +58,84 @@ export default function AlertHistory() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white p-8">
-      {/* Title */}
-      <h1 className="text-3xl font-bold">Alert History</h1>
-      <p className="text-gray-400 mt-1">
-        Review and manage all past system alerts and triggered actions.
-      </p>
+    <div className="w-full min-h-screen bg-[#0f172a] text-white flex flex-col">
 
-      {/* Search Bar */}
-      <div className="mt-6 mb-4 bg-[#1e293b] px-4 py-3 rounded-xl border border-gray-700 flex items-center gap-3">
-        <Search className="text-gray-400 w-5 h-5" />
-        <input
-          type="text"
-          placeholder="Search by keyword, device ID, etc."
-          className="bg-transparent outline-none text-gray-200 w-full placeholder:text-gray-500"
-        />
-      </div>
+      {/* NAVBAR */}
+      <Navbar isLoggedIn={true} />
 
-      {/* Table */}
-      <div className="bg-[#1e293b] border border-gray-700 rounded-xl overflow-hidden">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-[#0f172a] text-gray-400 text-xs uppercase border-b border-gray-700">
-            <tr>
-              <th className="px-4 py-3">Timestamp</th>
-              <th className="px-4 py-3">Device / Origin</th>
-              <th className="px-4 py-3">Alert Description</th>
-              <th className="px-4 py-3">Severity</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Auto-Action</th>
-            </tr>
-          </thead>
+      {/* MAIN CONTENT */}
+      <div className="pt-24 px-8 pb-10">
+        {/* Title */}
+        <h1 className="text-3xl font-bold">Alert History</h1>
+        <p className="text-gray-400 mt-1">
+          Review and manage all past system alerts and triggered actions.
+        </p>
 
-          <tbody>
-            {alerts.map((a, i) => (
-              <tr key={i} className="border-b border-gray-700/40">
-                <td className="px-4 py-3 text-gray-300">{a.timestamp}</td>
+        {/* Search Bar */}
+        <div className="mt-6 mb-4 bg-[#1e293b] px-4 py-3 rounded-xl border border-gray-700 flex items-center gap-3">
+          <Search className="text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Search by keyword, device ID, etc."
+            className="bg-transparent outline-none text-gray-200 w-full placeholder:text-gray-500"
+          />
+        </div>
 
-                <td className="px-4 py-3 font-semibold text-blue-300">
-                  {a.device}
-                </td>
-
-                <td className="px-4 py-3 text-gray-300">{a.desc}</td>
-
-                <td className="px-4 py-3">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      severityColors[a.severity]
-                    }`}
-                  >
-                    ● {a.severity}
-                  </span>
-                </td>
-
-                <td className="px-4 py-3">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      statusColors[a.status]
-                    }`}
-                  >
-                    ● {a.status}
-                  </span>
-                </td>
-
-                <td className="px-4 py-3 text-gray-300">{a.action}</td>
+        {/* Table */}
+        <div className="bg-[#1e293b] border border-gray-700 rounded-xl overflow-hidden">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-[#0f172a] text-gray-400 text-xs uppercase border-b border-gray-700">
+              <tr>
+                <th className="px-4 py-3">Timestamp</th>
+                <th className="px-4 py-3">Device / Origin</th>
+                <th className="px-4 py-3">Alert Description</th>
+                <th className="px-4 py-3">Severity</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Auto-Action</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
 
-      {/* Footer */}
-      <p className="text-gray-500 text-sm mt-3">Showing 1 to 5 of 97 results</p>
+            <tbody>
+              {alerts.map((a, i) => (
+                <tr key={i} className="border-b border-gray-700/40">
+                  <td className="px-4 py-3 text-gray-300">{a.timestamp}</td>
+
+                  <td className="px-4 py-3 font-semibold text-blue-300">
+                    {a.device}
+                  </td>
+
+                  <td className="px-4 py-3 text-gray-300">{a.desc}</td>
+
+                  <td className="px-4 py-3">
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        severityColors[a.severity]
+                      }`}
+                    >
+                      ● {a.severity}
+                    </span>
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        statusColors[a.status]
+                      }`}
+                    >
+                      ● {a.status}
+                    </span>
+                  </td>
+
+                  <td className="px-4 py-3 text-gray-300">{a.action}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Footer */}
+        <p className="text-gray-500 text-sm mt-3">Showing 1 to 5 of 97 results</p>
+      </div>
     </div>
   );
 }
