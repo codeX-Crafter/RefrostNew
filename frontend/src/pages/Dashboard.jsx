@@ -59,7 +59,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen pt-24 bg-[#0D1117] text-white">
-      <Navbar />
+      <Navbar isLoggedIn={true}/>
 
       <div className="p-6 space-y-10">
         {/* ---------------- TOP GRID ---------------- */}
