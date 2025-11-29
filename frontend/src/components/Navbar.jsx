@@ -1,9 +1,12 @@
 import { Link } from "react-router-dom";
 
 export default function Navbar({ isLoggedIn }) {
+  const profileImg = localStorage.getItem("profileImage");
+
   return (
     <nav className="w-full fixed top-0 left-0 z-30 bg-[#07101c]/40 backdrop-blur-lg border-b border-white/5">
       <div className="max-w-6xl mx-auto px-6 lg:px-10 h-16 flex items-center justify-between">
+
         {/* Logo */}
         <div className="flex items-center gap-3">
           <img src="/image.png" className="w-10 h-10 rounded" />
@@ -14,15 +17,14 @@ export default function Navbar({ isLoggedIn }) {
 
         {/* Right side */}
         {isLoggedIn ? (
-          // Logged-in: show profile
           <Link to="/profile">
             <img
-              src="/profile.png"
+              src={profileImg || "/profile.png"}
               className="w-9 h-9 rounded-full border border-white/20 cursor-pointer hover:opacity-80 transition"
+              alt="profile"
             />
           </Link>
         ) : (
-          // Not logged in: show login / signup
           <div className="flex gap-4">
             <Link to="/login">
               <button className="px-4 py-2 text-sm text-blue-200 hover:text-white transition">
