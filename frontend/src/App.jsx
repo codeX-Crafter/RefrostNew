@@ -6,8 +6,12 @@ import Sensors from "./pages/Sensors";
 import Landing from "./pages/Landing";
 import Settings from "./pages/Settings";
 import SensorDetails from "./pages/SensorDetails";
+<<<<<<< HEAD
 import AlertsPage from "./pages/AlertsPage";
 import ShipmentAnalytics from "./pages/ShipmentAnalytics";
+=======
+import Profile from "./pages/Profile";
+>>>>>>> 82093ad655557f83102abf5f0ce5ac06cd5649ae
 
 function App() {
   return (
@@ -20,6 +24,7 @@ function App() {
       <Route path="/AlertsPage" element={<AlertsPage />} />
       <Route path="/Sensors" element={<Sensors />} />
       <Route path="/Settings" element={<Settings />} />
+      <Route path="/profile" element={<Profile />} />
       {/* Add more pages later */}
       {/* <Route path="/devices" element={<Devices />} /> */}
       {/* <Route path="/shipments" element={<Shipments />} /> */}
