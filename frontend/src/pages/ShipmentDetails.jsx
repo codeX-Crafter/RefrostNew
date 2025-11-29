@@ -1,19 +1,65 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Truck, MapPin, Calendar } from "lucide-react";
 import Navbar from "../components/Navbar";
 
 export default function ShipmentDetails() {
   const [range, setRange] = useState("24H");
+  const [sensors, setSensors] = useState({
+    temp: "--",
+    hum: "--",
+    smoke: "--",
+    vib: "--",
+    door: "--",
+    buzzer: "--",
+  });
+
+  const token = "W9fDZh-GwnxtdCVT4go9w7V8FigQWC4o";
+  const SENSOR_URLS = {
+    temp: `https://blynk.cloud/external/api/get?token=${token}&V0`,
+    hum: `https://blynk.cloud/external/api/get?token=${token}&V2`,
+    smoke: `https://blynk.cloud/external/api/get?token=${token}&V4`,
+    vib: `https://blynk.cloud/external/api/get?token=${token}&V3`,
+    door: `https://blynk.cloud/external/api/get?token=${token}&V1`,
+    buzzer: `https://blynk.cloud/external/api/get?token=${token}&V5`,
+  };
+
+  const fetchSensors = async () => {
+    try {
+      const [temp, hum, smoke, vib, door, buzzer] = await Promise.all([
+        fetch(SENSOR_URLS.temp).then((r) => r.text()),
+        fetch(SENSOR_URLS.hum).then((r) => r.text()),
+        fetch(SENSOR_URLS.smoke).then((r) => r.text()),
+        fetch(SENSOR_URLS.vib).then((r) => r.text()),
+        fetch(SENSOR_URLS.door).then((r) => r.text()),
+        fetch(SENSOR_URLS.buzzer).then((r) => r.text()),
+      ]);
+
+      setSensors({
+        temp: `${temp}°C`,
+        hum: `${hum}%`,
+        smoke: `${smoke} PPM`,
+        vib: vib === "1" ? "Active" : "Inactive",
+        door: door === "1" ? "Open" : "Closed",
+        buzzer: buzzer === "1" ? "On" : "Off",
+      });
+    } catch (err) {
+      console.error("Error fetching sensors:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchSensors();
+    const interval = setInterval(fetchSensors, 3000); // fetch every 3s
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#0D1117] text-white">
-
       {/* NAVBAR */}
       <Navbar isLoggedIn={true} />
 
       {/* MAIN CONTENT */}
       <div className="px-10 py-24">
-
         {/* Breadcrumb */}
         <div className="text-sm text-gray-400 mb-3">
           All Shipments / <span className="text-white">Shipment #SH123</span>
@@ -35,22 +81,24 @@ export default function ShipmentDetails() {
 
         {/* Sensor Summary */}
         <div className="grid grid-cols-4 gap-6 mb-10">
-          <StatCard label="Temperature" value="2.5°C" status="safe" />
-          <StatCard label="Humidity" value="55% RH" status="safe" />
-          <StatCard label="Door Status" value="Open" status="warning" />
-          <StatCard label="Gas Level" value="98 PPM" status="critical" />
+          <StatCard label="Temperature" value={sensors.temp} status="safe" />
+          <StatCard label="Humidity" value={sensors.hum} status="safe" />
+          <StatCard label="Door Status" value={sensors.door} status="warning" />
+          <StatCard label="Gas Level" value={sensors.smoke} status="critical" />
         </div>
 
         {/* Attached Sensors + Journey Timeline */}
         <div className="grid grid-cols-3 gap-8 mb-12">
           {/* Attached Sensors Table */}
           <div className="col-span-2 bg-[#111827] rounded-2xl p-6">
-            <h2 className="text-2xl font-semibold mb-1">Attached Sensors (4)</h2>
+            <h2 className="text-2xl font-semibold mb-1">
+              Attached Sensors (4)
+            </h2>
             <p className="text-gray-400 text-sm mb-4">
               Average real-time values from all sensors in the shipment.
             </p>
 
-            <SensorTable />
+            <SensorTable sensors={sensors} />
           </div>
 
           {/* Journey Timeline */}
@@ -184,39 +232,15 @@ function StatCard({ label, value, status }) {
   );
 }
 
-function SensorTable() {
-  const sensors = [
-    {
-      id: "#SN-T456",
-      temp: "2.5°C",
-      hum: "55%",
-      door: "Closed",
-      gas: "12 PPM",
-      status: "safe",
-    },
-    {
-      id: "#SN-T457",
-      temp: "3.1°C",
-      hum: "52%",
-      door: "Closed",
-      gas: "15 PPM",
-      status: "safe",
-    },
-    {
-      id: "#SN-H112",
-      temp: "8.9°C",
-      hum: "48%",
-      door: "Closed",
-      gas: "20 PPM",
-      status: "critical",
-    },
+function SensorTable({ sensors }) {
+  const sensorData = [
+    { id: "#SN-T456", value: sensors.temp, status: "safe" },
+    { id: "#SN-T457", value: sensors.hum, status: "safe" },
+    { id: "#SN-H112", value: sensors.smoke, status: "critical" },
     {
       id: "#SN-D301",
-      temp: "2.8°C",
-      hum: "56%",
-      door: "Open",
-      gas: "14 PPM",
-      status: "warning",
+      value: sensors.vib,
+      status: sensors.vib === "Active" ? "warning" : "safe",
     },
   ];
 
@@ -232,24 +256,18 @@ function SensorTable() {
         <thead className="text-gray-400 border-b border-gray-800">
           <tr>
             <th className="pb-3 pr-6">Sensor ID</th>
-            <th className="pb-3 pr-6">Temperature</th>
-            <th className="pb-3 pr-6">Humidity</th>
-            <th className="pb-3 pr-6">Door Status</th>
-            <th className="pb-3 pr-6">Gas Level</th>
+            <th className="pb-3 pr-6">Value</th>
             <th className="pb-3">Status</th>
           </tr>
         </thead>
         <tbody>
-          {sensors.map((s) => (
+          {sensorData.map((s) => (
             <tr
               key={s.id}
               className="border-b border-gray-800 hover:bg-[#161a1f]"
             >
               <td className="py-3 text-blue-300 font-semibold">{s.id}</td>
-              <td className="py-3">{s.temp}</td>
-              <td className="py-3">{s.hum}</td>
-              <td className="py-3">{s.door}</td>
-              <td className="py-3">{s.gas}</td>
+              <td className="py-3">{s.value}</td>
               <td className="py-3">
                 <span
                   className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${
