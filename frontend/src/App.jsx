@@ -6,6 +6,7 @@ import Sensors from "./pages/Sensors";
 import Landing from "./pages/Landing";
 import Settings from "./pages/Settings";
 import SensorDetails from "./pages/SensorDetails";
+import Profile from "./pages/Profile";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
       <Route path="/Analytics" element={<Analytics />} />
       <Route path="/Sensors" element={<Sensors />} />
       <Route path="/Settings" element={<Settings />} />
+      <Route path="/profile" element={<Profile />} />
       {/* Add more pages later */}
       {/* <Route path="/devices" element={<Devices />} /> */}
       {/* <Route path="/shipments" element={<Shipments />} /> */}
