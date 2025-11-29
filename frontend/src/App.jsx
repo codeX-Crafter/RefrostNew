@@ -6,12 +6,11 @@ import Sensors from "./pages/Sensors";
 import Landing from "./pages/Landing";
 import Settings from "./pages/Settings";
 import SensorDetails from "./pages/SensorDetails";
-<<<<<<< HEAD
+
 import AlertsPage from "./pages/AlertsPage";
 import ShipmentAnalytics from "./pages/ShipmentAnalytics";
-=======
+
 import Profile from "./pages/Profile";
->>>>>>> 82093ad655557f83102abf5f0ce5ac06cd5649ae
 
 function App() {
   return (
