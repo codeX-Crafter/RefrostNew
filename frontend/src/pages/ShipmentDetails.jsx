@@ -156,8 +156,12 @@ export default function ShipmentDetails() {
             </div>
 
             {/* Placeholder Chart */}
-            <div className="mt-6 h-[330px] bg-black/20 rounded-xl flex items-center justify-center">
-              <span className="text-gray-500 text-sm">Chart Placeholder</span>
+            <div className="mt-6 bg-black/20 rounded-xl flex items-center justify-center overflow-x-auto overflow-y-auto p-2">
+              <img
+                src="/grad.png"
+                alt="Refrost Data Visualization"
+                className="object-contain"
+              />
             </div>
           </div>
 

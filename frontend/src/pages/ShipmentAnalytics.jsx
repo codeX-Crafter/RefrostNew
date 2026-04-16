@@ -136,9 +136,9 @@ export default function ShipmentAnalytics() {
       <div className="bg-[#161b26] p-6 rounded-xl">
         <div className="font-semibold mb-4">24-Hour Event Timeline</div>
         <img
-          src="/event-timeline.png"
+          src="/plot.jpg"
           alt="event timeline"
-          className="w-full h-64 object-contain"
+          className="w-full h-auto object-contain"
         />
       </div>
     </div>
