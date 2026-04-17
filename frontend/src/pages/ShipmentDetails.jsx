@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { Truck, MapPin, Calendar } from "lucide-react";
 import Navbar from "../components/Navbar";
+import ShipmentMap from "../components/ShipmentMap";
 
 export default function ShipmentDetails() {
+  const { id } = useParams();
   const [range, setRange] = useState("24H");
   const [sensors, setSensors] = useState({
     temp: "--",
@@ -62,11 +65,11 @@ export default function ShipmentDetails() {
       <div className="px-10 py-24">
         {/* Breadcrumb */}
         <div className="text-sm text-gray-400 mb-3">
-          All Shipments / <span className="text-white">Shipment #SH123</span>
+          All Shipments / <span className="text-white">Shipment {id}</span>
         </div>
 
         {/* Page Title */}
-        <h1 className="text-4xl font-bold mb-2">Shipment #SH123</h1>
+        <h1 className="text-4xl font-bold mb-2">Shipment {id}</h1>
         <p className="text-gray-400 mb-10">
           Real-time monitoring and summary of the shipment's journey.
         </p>
@@ -86,7 +89,7 @@ export default function ShipmentDetails() {
           <StatCard label="Door Status" value={sensors.door} status="warning" />
           <StatCard label="Gas Level" value={sensors.smoke} status="critical" />
         </div>
-
+           <ShipmentMap />
         {/* Attached Sensors + Journey Timeline */}
         <div className="grid grid-cols-3 gap-8 mb-12">
           {/* Attached Sensors Table */}

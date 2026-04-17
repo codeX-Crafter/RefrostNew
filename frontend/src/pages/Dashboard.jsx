@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Truck,
   AlertCircle,
@@ -8,11 +9,10 @@ import {
   MapPin,
 } from "lucide-react";
 import Navbar from "../components/Navbar";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
 
 export default function Dashboard() {
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
 
   const [shipments, setShipments] = useState([
     {
@@ -59,7 +59,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen pt-24 bg-[#0D1117] text-white">
-      <Navbar isLoggedIn={true}/>
+      <Navbar isLoggedIn={true} />
 
       <div className="p-6 space-y-10">
         {/* ---------------- TOP GRID ---------------- */}
@@ -90,23 +90,29 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* SMALLER MAP */}
-          <div className="col-span-1 bg-[#111827] rounded-2xl p-4 h-[220px]">
-            <h2 className="text-sm font-semibold mb-3">Live Map</h2>
+          {/* SYSTEM HEALTH */}
+          <div className="col-span-1 bg-[#111827] rounded-2xl p-5 h-[220px]">
+            <h2 className="text-sm font-semibold mb-4">System Health</h2>
 
-            <div className="w-full h-full rounded-xl overflow-hidden">
-              <MapContainer center={[20, 0]} zoom={2} className="w-full h-full">
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <div className="space-y-4 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Online Devices</span>
+                <span className="text-green-400 font-semibold">287</span>
+              </div>
 
-                {shipments.map((s) => (
-                  <Marker key={s.id} position={s.coords}>
-                    <Popup>
-                      <strong>{s.id}</strong> <br />
-                      {s.origin} → {s.dest}
-                    </Popup>
-                  </Marker>
-                ))}
-              </MapContainer>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Offline Devices</span>
+                <span className="text-red-400 font-semibold">12</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-400">Warnings</span>
+                <span className="text-yellow-400 font-semibold">8</span>
+              </div>
+
+              <div className="pt-4 border-t border-gray-800 text-xs text-gray-500">
+                Last Sync: 2 min ago
+              </div>
             </div>
           </div>
         </div>
@@ -126,12 +132,12 @@ export default function Dashboard() {
                   placeholder="Search Shipment ID..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="bg-transparent outline-none text-sm"
+                  className="bg-transparent outline-none text-sm w-48 placeholder:text-gray-500"
                 />
               </div>
             </div>
 
-            <ShipmentTable shipments={filteredShipments} />
+            <ShipmentTable shipments={filteredShipments} navigate={navigate} />
           </div>
 
           {/* ALERTS */}
@@ -179,7 +185,10 @@ export default function Dashboard() {
 
 function MetricCard({ title, value, icon, color }) {
   return (
-    <div className={`${color} p-5 rounded-2xl flex items-center gap-4`}>
+    <div
+      className={`${color} p-5 rounded-2xl flex items-center gap-4 hover:scale-105 transition duration-300 cursor-pointer`}
+    >
+      {" "}
       <div>{icon}</div>
       <div>
         <div className="text-gray-400 text-xs mb-1">{title}</div>
@@ -197,14 +206,16 @@ function StatusCard({ label, value, color }) {
   };
 
   return (
-    <div className="bg-[#111827] p-5 rounded-2xl flex flex-col items-center justify-center">
-      <span className={`${colorMap[color]} font-bold text-2xl`}>{value}</span>
+    <div className="bg-[#111827] p-5 rounded-2xl flex flex-col items-center justify-center hover:scale-105 transition duration-300 cursor-pointer">
+      <span className={`${colorMap[color]} font-bold text-3xl`}>
+        {value}
+      </span>
       <span className="text-gray-400 mt-1 text-xs">{label}</span>
     </div>
   );
 }
 
-function ShipmentTable({ shipments }) {
+function ShipmentTable({ shipments, navigate }) {
   const statusColors = {
     "In Transit": "bg-blue-500 text-white px-2 py-0.5 rounded",
     Delayed: "bg-yellow-500 text-white px-2 py-0.5 rounded",
@@ -231,19 +242,23 @@ function ShipmentTable({ shipments }) {
 
         <tbody>
           {shipments.map((s) => (
-            <tr key={s.id} className="border-b border-gray-800">
-              <td className="py-3">{s.id}</td>
-              <td className="py-3">{s.origin}</td>
-              <td className="py-3">{s.dest}</td>
-              <td className="py-3">
-                <span className={statusColors[s.status]}>{s.status}</span>
-              </td>
-              <td className="py-3">{s.temp}</td>
-              <td className="py-3">{s.eta}</td>
-              <td className="py-3">{s.lastUpdate}</td>
-              <td className="py-3">{s.battery}</td>
-              <td className="py-3">{s.signal}</td>
-            </tr>
+            <tr
+  key={s.id}
+  onClick={() => navigate(`/ShipmentDetails/${s.id}`)}
+  className="border-b border-gray-800 hover:bg-[#1a2332] transition cursor-pointer"
+>
+  <td className="py-3 text-blue-400 font-medium">{s.id}</td>
+  <td className="py-3">{s.origin}</td>
+  <td className="py-3">{s.dest}</td>
+  <td className="py-3">
+    <span className={statusColors[s.status]}>{s.status}</span>
+  </td>
+  <td className="py-3">{s.temp}</td>
+  <td className="py-3">{s.eta}</td>
+  <td className="py-3">{s.lastUpdate}</td>
+  <td className="py-3">{s.battery}</td>
+  <td className="py-3">{s.signal}</td>
+</tr>
           ))}
         </tbody>
       </table>

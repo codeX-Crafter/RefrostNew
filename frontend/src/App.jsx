@@ -17,8 +17,7 @@ function App() {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/Dashboard" element={<Dashboard />} />
-      <Route path="/ShipmentDetails" element={<ShipmentDetails />} />
-      {/* <Route path="/SensorDetails" element={<SensorDetails />} /> */}
+<Route path="/ShipmentDetails/:id" element={<ShipmentDetails />} />      {/* <Route path="/SensorDetails" element={<SensorDetails />} /> */}
       <Route path="/Analytics" element={<ShipmentAnalytics />} />
       <Route path="/AlertsPage" element={<AlertsPage />} />
       {/* <Route path="/Sensors" element={<Sensors />} /> */}
