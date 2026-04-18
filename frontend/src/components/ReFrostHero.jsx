@@ -123,7 +123,7 @@ export default function ReFrostHero() {
               threat.
             </p>
 
-            <Link to="/shipmentDetails">
+            <Link to="/Dashboard">
               <button className="px-6 py-3 rounded-lg bg-[#7ac9f4] text-[#07101c] text-sm font-semibold hover:bg-[#68bde9] transition">
                 Launch Dashboard
               </button>
