@@ -22,7 +22,7 @@ export default function SensorDetails() {
         <StatCard label="Temperature" value="2.5°C" status="safe" />
         <StatCard label="Humidity" value="55% RH" status="safe" />
         <StatCard label="Door Status" value="Open" status="warning" />
-        <StatCard label="Gas Level" value="98 PPM" status="critical" />
+        <StatCard label="CO2 Level" value="98 PPM" status="critical" />
       </div>
 
       {/* Main Layout */}
@@ -70,7 +70,7 @@ export default function SensorDetails() {
 
             <AlertItem
               type="critical"
-              title="High Gas Level Detected"
+              title="High CO2 Level Detected"
               time="Today at 11:32 AM"
             />
             <AlertItem

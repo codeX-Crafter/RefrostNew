@@ -15,7 +15,7 @@ export default function ReFrostHero() {
       50,
       mount.clientWidth / mount.clientHeight,
       0.1,
-      100
+      100,
     );
     camera.position.set(0, 0.4, 2.8);
 
@@ -50,7 +50,7 @@ export default function ReFrostHero() {
         clearcoatRoughness: 0.08,
         attenuationColor: 0x93d8ff,
         attenuationDistance: 1.3,
-      })
+      }),
     );
     cube.position.y = 0.1;
     scene.add(cube);
@@ -66,7 +66,7 @@ export default function ReFrostHero() {
     const particles = new THREE.Points(
       new THREE.BufferGeometry().setAttribute(
         "position",
-        new THREE.BufferAttribute(pos, 3)
+        new THREE.BufferAttribute(pos, 3),
       ),
       new THREE.PointsMaterial({
         size: 0.026,
@@ -74,7 +74,7 @@ export default function ReFrostHero() {
         transparent: true,
         opacity: 0.92,
         depthWrite: false,
-      })
+      }),
     );
 
     scene.add(particles);
@@ -123,9 +123,9 @@ export default function ReFrostHero() {
               threat.
             </p>
 
-            <Link to="/Dashboard">
+            <Link to="/ShipmentDetails/main">
               <button className="px-6 py-3 rounded-lg bg-[#7ac9f4] text-[#07101c] text-sm font-semibold hover:bg-[#68bde9] transition">
-                Launch Dashboard
+                View Command Center
               </button>
             </Link>
 

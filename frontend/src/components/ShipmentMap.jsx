@@ -1,75 +1,82 @@
-import React, { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Polyline, Popup } from "react-leaflet";
+import React from "react";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import { MapPin, Clock3, Activity } from "lucide-react";
 
-const route = [
-  [28.6139, 77.2090],
-  [27.1767, 78.0081],
-  [23.0225, 72.5714],
-  [19.0760, 72.8777],
-];
-
-export default function ShipmentMap() {
-  const [position, setPosition] = useState(route[0]);
-  const [step, setStep] = useState(0);
-  const [eta, setEta] = useState("4h 20m");
-  const [speed, setSpeed] = useState("45 km/h");
-  const [status, setStatus] = useState("On Route");
-
-  useEffect(() => {
-    // Later MQTT data will call:
-// setPosition([lat, lng])
-    const timer = setInterval(() => {
-      setStep((prev) => {
-        const next = prev < route.length - 1 ? prev + 1 : prev;
-
-        setPosition(route[next]);
-        setEta(`${4 - next}h ${20 + next * 5}m`);
-        setSpeed(`${40 + next * 5} km/h`);
-
-        return next;
-      });
-    }, 3000);
-
-    return () => clearInterval(timer);
-  }, []);
-
+export default function ShipmentMap({
+  position = [51.9225, 4.47917],
+  eta = "—",
+  speed = "—",
+  lastUpdate = "—",
+}) {
   return (
-    <div className="bg-[#111827] rounded-2xl p-6 mb-8">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4 text-white">
-        <h2 className="text-xl font-semibold">Live Route Tracking</h2>
-        <div className="text-sm text-gray-400">{eta}</div>
+    <div className="bg-[#111827] rounded-3xl border border-white/10 overflow-hidden shadow-[0_20px_80px_rgba(0,0,0,0.15)]">
+      <div className="px-6 py-5 border-b border-white/10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-white">Live Map</h2>
+          <p className="text-sm text-slate-400 mt-1">
+            Real-time shipment location and route context.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 text-sm text-slate-300">
+          <div className="rounded-2xl bg-white/5 p-3 flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-cyan-300" />
+            <div>
+              <div className="text-xs uppercase tracking-[0.22em] text-slate-500">
+                Coordinates
+              </div>
+              <div className="font-medium text-white">
+                {position[0].toFixed(4)}, {position[1].toFixed(4)}
+              </div>
+            </div>
+          </div>
+          <div className="rounded-2xl bg-white/5 p-3 flex items-center gap-2">
+            <Clock3 className="w-4 h-4 text-slate-300" />
+            <div>
+              <div className="text-xs uppercase tracking-[0.22em] text-slate-500">
+                ETA
+              </div>
+              <div className="font-medium text-white">{eta}</div>
+            </div>
+          </div>
+          <div className="rounded-2xl bg-white/5 p-3 flex items-center gap-2">
+            <Activity className="w-4 h-4 text-sky-300" />
+            <div>
+              <div className="text-xs uppercase tracking-[0.22em] text-slate-500">
+                Speed
+              </div>
+              <div className="font-medium text-white">{speed}</div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Info Cards */}
-      <div className="grid grid-cols-3 gap-3 mb-4 text-sm text-white">
-        <div className="bg-[#0f172a] p-2 rounded-lg">Status: {status}</div>
-        <div className="bg-[#0f172a] p-2 rounded-lg">Speed: {speed}</div>
-        <div className="bg-[#0f172a] p-2 rounded-lg">ETA: {eta}</div>
+      <div className="h-[460px]">
+        <MapContainer
+          center={position}
+          zoom={5}
+          scrollWheelZoom={false}
+          className="h-full w-full"
+        >
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <Marker position={position}>
+            <Popup>Shipment is here now</Popup>
+          </Marker>
+        </MapContainer>
       </div>
 
-      {/* Map */}
-      <MapContainer
-        center={position}
-        zoom={5}
-        style={{ height: "400px", width: "100%", borderRadius: "16px" }}
-      >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-
-        <Marker position={position}>
-          <Popup>Shipment Current Location</Popup>
-        </Marker>
-
-        <Polyline
-          positions={route}
-          pathOptions={{
-            color: "#3b82f6",
-            weight: 5,
-            opacity: 0.9,
-          }}
-        />
-      </MapContainer>
+      <div className="px-6 py-4 border-t border-white/10 bg-[#07101c] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-slate-300">
+        <div className="font-medium text-white">Last sync: {lastUpdate}</div>
+        <div className="flex flex-wrap gap-3">
+          <span className="rounded-full bg-white/5 px-3 py-2">
+            Live routing
+          </span>
+          <span className="rounded-full bg-white/5 px-3 py-2">
+            Secure stream
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

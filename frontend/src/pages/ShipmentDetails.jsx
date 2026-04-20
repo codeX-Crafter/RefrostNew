@@ -1,349 +1,680 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Truck, MapPin, Calendar } from "lucide-react";
+import {
+  Thermometer,
+  Droplets,
+  Zap,
+  Activity,
+  ShieldAlert,
+  Wifi,
+  Clock3,
+  MapPin,
+  Bug,
+} from "lucide-react";
 import Navbar from "../components/Navbar";
 import ShipmentMap from "../components/ShipmentMap";
+import {
+  subscribeToTopic,
+  publishToTopic,
+  getClientState,
+} from "../utils/mqttClient";
+import {
+  saveSensorLog,
+  saveLocationLog,
+  saveAlert,
+} from "../utils/firestoreService";
+
+const statusAccent = {
+  SAFE: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30",
+  ALERT: "bg-rose-500/15 text-rose-300 border border-rose-500/30",
+  default: "bg-slate-700/40 text-slate-200 border border-slate-500/20",
+};
 
 export default function ShipmentDetails() {
   const { id } = useParams();
-  const [range, setRange] = useState("24H");
-  const [sensors, setSensors] = useState({
-    temp: "--",
-    hum: "--",
-    smoke: "--",
-    vib: "--",
-    door: "--",
-    buzzer: "--",
+  const shipmentId = id || "main";
+  const [overview, setOverview] = useState({
+    status: "SAFE",
+    route: "Rotterdam, NL → New York, US",
+    eta: "2 days",
+    connection: "Disconnected",
+    lastUpdated: "—",
+    battery: "82%",
   });
+  const [metrics, setMetrics] = useState({
+    temperature: "--",
+    humidity: "--",
+    gas: "--",
+    vibration: "--",
+    status: "SAFE",
+  });
+  const [location, setLocation] = useState({
+    lat: 51.9225,
+    lng: 4.47917,
+    eta: "2 days",
+    speed: "45 km/h",
+    updated: "—",
+  });
+  const [activity, setActivity] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const [showDebug, setShowDebug] = useState(false);
 
-  const token = "W9fDZh-GwnxtdCVT4go9w7V8FigQWC4o";
-  const SENSOR_URLS = {
-    temp: `https://blynk.cloud/external/api/get?token=${token}&V0`,
-    hum: `https://blynk.cloud/external/api/get?token=${token}&V2`,
-    smoke: `https://blynk.cloud/external/api/get?token=${token}&V4`,
-    vib: `https://blynk.cloud/external/api/get?token=${token}&V3`,
-    door: `https://blynk.cloud/external/api/get?token=${token}&V1`,
-    buzzer: `https://blynk.cloud/external/api/get?token=${token}&V5`,
+  const defaultSettings = {
+    tempLower: -10,
+    tempUpper: 30,
+    humidityLower: 20,
+    humidityUpper: 60,
+    gasLower: 0,
+    gasUpper: 100,
+    vibrationLower: 0,
+    vibrationUpper: 50,
   };
 
-  const fetchSensors = async () => {
-    try {
-      const [temp, hum, smoke, vib, door, buzzer] = await Promise.all([
-        fetch(SENSOR_URLS.temp).then((r) => r.text()),
-        fetch(SENSOR_URLS.hum).then((r) => r.text()),
-        fetch(SENSOR_URLS.smoke).then((r) => r.text()),
-        fetch(SENSOR_URLS.vib).then((r) => r.text()),
-        fetch(SENSOR_URLS.door).then((r) => r.text()),
-        fetch(SENSOR_URLS.buzzer).then((r) => r.text()),
-      ]);
+  const [settings, setSettings] = useState(() => {
+    const saved = localStorage.getItem("sensorSettings");
+    return saved ? JSON.parse(saved) : defaultSettings;
+  });
 
-      setSensors({
-        temp: `${temp}°C`,
-        hum: `${hum}%`,
-        smoke: `${smoke} PPM`,
-        vib: vib === "1" ? "Active" : "Inactive",
-        door: door === "1" ? "Open" : "Closed",
-        buzzer: buzzer === "1" ? "On" : "Off",
+  const pushActivity = (entry) => {
+    setActivity((prev) => [entry, ...prev].slice(0, 8));
+  };
+
+  // Track active alerts to avoid duplicates
+  const [activeAlerts, setActiveAlerts] = useState(new Set());
+
+  const checkThresholdsAndAlert = (sensorData) => {
+    const newAlerts = [];
+
+    // Temperature check
+    if (sensorData.temperature !== undefined) {
+      const temp = parseFloat(sensorData.temperature);
+      const alertKey = `temp_${temp < settings.tempLower ? "low" : "high"}`;
+
+      if (temp < settings.tempLower && !activeAlerts.has(alertKey)) {
+        const alert = {
+          sensorType: "temperature",
+          currentValue: temp,
+          thresholdCrossed: `below ${settings.tempLower}°C`,
+          severity: temp < settings.tempLower - 10 ? "Critical" : "Warning",
+          description: `Temperature too low: ${temp}°C (below ${settings.tempLower}°C)`,
+          device: "Temperature Sensor",
+          timestamp: new Date(),
+          status: "unresolved",
+        };
+        newAlerts.push(alert);
+        setActiveAlerts((prev) => new Set([...prev, alertKey]));
+      } else if (temp > settings.tempUpper && !activeAlerts.has(alertKey)) {
+        const alert = {
+          sensorType: "temperature",
+          currentValue: temp,
+          thresholdCrossed: `above ${settings.tempUpper}°C`,
+          severity: temp > settings.tempUpper + 10 ? "Critical" : "Warning",
+          description: `Temperature too high: ${temp}°C (above ${settings.tempUpper}°C)`,
+          device: "Temperature Sensor",
+          timestamp: new Date(),
+          status: "unresolved",
+        };
+        newAlerts.push(alert);
+        setActiveAlerts((prev) => new Set([...prev, alertKey]));
+      } else if (
+        temp >= settings.tempLower &&
+        temp <= settings.tempUpper &&
+        activeAlerts.has(alertKey)
+      ) {
+        // Temperature back to normal, remove from active alerts
+        setActiveAlerts((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(alertKey);
+          return newSet;
+        });
+      }
+    }
+
+    // Humidity check
+    if (sensorData.humidity !== undefined) {
+      const humidity = parseFloat(sensorData.humidity);
+      const alertKey = `humidity_${humidity < settings.humidityLower ? "low" : "high"}`;
+
+      if (humidity < settings.humidityLower && !activeAlerts.has(alertKey)) {
+        const alert = {
+          sensorType: "humidity",
+          currentValue: humidity,
+          thresholdCrossed: `below ${settings.humidityLower}%`,
+          severity:
+            humidity < settings.humidityLower - 10 ? "Critical" : "Warning",
+          description: `Humidity too low: ${humidity}% (below ${settings.humidityLower}%)`,
+          device: "Humidity Sensor",
+          timestamp: new Date(),
+          status: "unresolved",
+        };
+        newAlerts.push(alert);
+        setActiveAlerts((prev) => new Set([...prev, alertKey]));
+      } else if (
+        humidity > settings.humidityUpper &&
+        !activeAlerts.has(alertKey)
+      ) {
+        const alert = {
+          sensorType: "humidity",
+          currentValue: humidity,
+          thresholdCrossed: `above ${settings.humidityUpper}%`,
+          severity:
+            humidity > settings.humidityUpper + 10 ? "Critical" : "Warning",
+          description: `Humidity too high: ${humidity}% (above ${settings.humidityUpper}%)`,
+          device: "Humidity Sensor",
+          timestamp: new Date(),
+          status: "unresolved",
+        };
+        newAlerts.push(alert);
+        setActiveAlerts((prev) => new Set([...prev, alertKey]));
+      } else if (
+        humidity >= settings.humidityLower &&
+        humidity <= settings.humidityUpper &&
+        activeAlerts.has(alertKey)
+      ) {
+        // Humidity back to normal, remove from active alerts
+        setActiveAlerts((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(alertKey);
+          return newSet;
+        });
+      }
+    }
+
+    // Gas check
+    if (sensorData.gas !== undefined) {
+      const gas = parseFloat(sensorData.gas);
+      const alertKey = "gas_high";
+
+      if (gas > settings.gasUpper && !activeAlerts.has(alertKey)) {
+        const alert = {
+          sensorType: "gas",
+          currentValue: gas,
+          thresholdCrossed: `above ${settings.gasUpper} ppm`,
+          severity: gas > settings.gasUpper + 50 ? "Critical" : "Warning",
+          description: `CO2 level too high: ${gas} ppm (above ${settings.gasUpper} ppm)`,
+          device: "CO2 Sensor",
+          timestamp: new Date(),
+          status: "unresolved",
+        };
+        newAlerts.push(alert);
+        setActiveAlerts((prev) => new Set([...prev, alertKey]));
+      } else if (gas <= settings.gasUpper && activeAlerts.has(alertKey)) {
+        // Gas back to normal, remove from active alerts
+        setActiveAlerts((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(alertKey);
+          return newSet;
+        });
+      }
+    }
+
+    // Vibration check
+    if (sensorData.vibration !== undefined) {
+      const vibration = parseFloat(sensorData.vibration);
+      const alertKey = "vibration_high";
+
+      if (vibration > settings.vibrationUpper && !activeAlerts.has(alertKey)) {
+        const alert = {
+          sensorType: "vibration",
+          currentValue: vibration,
+          thresholdCrossed: `above ${settings.vibrationUpper}`,
+          severity:
+            vibration > settings.vibrationUpper + 20 ? "Critical" : "Warning",
+          description: `Vibration too high: ${vibration} (above ${settings.vibrationUpper})`,
+          device: "Vibration Sensor",
+          timestamp: new Date(),
+          status: "unresolved",
+        };
+        newAlerts.push(alert);
+        setActiveAlerts((prev) => new Set([...prev, alertKey]));
+      } else if (
+        vibration <= settings.vibrationUpper &&
+        activeAlerts.has(alertKey)
+      ) {
+        // Vibration back to normal, remove from active alerts
+        setActiveAlerts((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(alertKey);
+          return newSet;
+        });
+      }
+    }
+
+    // Save and display new alerts
+    if (newAlerts.length > 0) {
+      console.log("[ALERTS] New alerts generated:", newAlerts);
+      newAlerts.forEach((alert) => {
+        setAlerts((prev) => [alert, ...prev].slice(0, 6));
+        saveAlert(alert);
+        pushActivity({
+          time: new Date().toLocaleTimeString(),
+          title: "Alert triggered",
+          description: alert.description,
+          type: "alert",
+        });
       });
-    } catch (err) {
-      console.error("Error fetching sensors:", err);
     }
   };
 
+  const testMqtt = () => {
+    console.log(
+      "[DEBUG] Testing MQTT with sample data that triggers alerts...",
+    );
+    const sampleData = {
+      sensors: {
+        temperature:
+          Math.random() > 0.5 ? settings.tempLower - 5 : settings.tempUpper + 5, // Will trigger temp alert
+        humidity:
+          Math.random() > 0.5
+            ? settings.humidityLower - 5
+            : settings.humidityUpper + 5, // Will trigger humidity alert
+        gas: settings.gasUpper + 20, // Will trigger gas alert
+        vibration: settings.vibrationUpper + 10, // Will trigger vibration alert
+      },
+      status: "SAFE",
+      location: {
+        lat: 51.9225 + (Math.random() - 0.5) * 0.1,
+        lng: 4.47917 + (Math.random() - 0.5) * 0.1,
+        eta: "2 days",
+        speed: Math.round(Math.random() * 80 + 20),
+      },
+    };
+
+    console.log("[DEBUG] Test data:", sampleData.sensors);
+    publishToTopic("shipment/main/sensors", sampleData.sensors);
+    publishToTopic("shipment/main/status", { status: sampleData.status });
+    publishToTopic("shipment/main/location", sampleData.location);
+    publishToTopic("shipment/main/alerts", "Test alert - MQTT working");
+
+    // Also check thresholds for test data
+    checkThresholdsAndAlert(sampleData.sensors);
+  };
+
   useEffect(() => {
-    fetchSensors();
-    const interval = setInterval(fetchSensors, 3000); // fetch every 3s
-    return () => clearInterval(interval);
+    const unsubSensors = subscribeToTopic("shipment/main/sensors", (data) => {
+      setMetrics((prev) => ({
+        temperature:
+          data.temperature !== undefined
+            ? `${data.temperature}°C`
+            : prev.temperature,
+        humidity:
+          data.humidity !== undefined ? `${data.humidity}%` : prev.humidity,
+        gas: data.gas !== undefined ? `${data.gas} ppm` : prev.gas,
+        vibration:
+          data.vibration !== undefined ? `${data.vibration}` : prev.vibration,
+        status: prev.status,
+      }));
+      setOverview((prev) => ({
+        ...prev,
+        connection: "Connected",
+        lastUpdated: "Live",
+      }));
+      pushActivity({
+        time: new Date().toLocaleTimeString(),
+        title: "Sensor update",
+        description: `Temp ${data.temperature}°C · Hum ${data.humidity}% · Gas ${data.gas} ppm`,
+        type: "sensor",
+      });
+      saveSensorLog(data);
+
+      // Check thresholds and generate alerts
+      checkThresholdsAndAlert(data);
+    });
+
+    const unsubStatus = subscribeToTopic("shipment/main/status", (data) => {
+      const statusValue =
+        typeof data === "string" ? data : data.status || "SAFE";
+
+      setMetrics((prev) => ({ ...prev, status: statusValue }));
+      setOverview((prev) => ({
+        ...prev,
+        status: statusValue,
+        eta: typeof data === "object" && data.eta ? data.eta : prev.eta,
+        battery:
+          typeof data === "object" && data.battery
+            ? data.battery
+            : prev.battery,
+        lastUpdated: "Live",
+      }));
+      pushActivity({
+        time: new Date().toLocaleTimeString(),
+        title: "Status update",
+        description: `System status changed to ${statusValue}`,
+        type: "status",
+      });
+    });
+
+    const unsubLocation = subscribeToTopic("shipment/main/location", (data) => {
+      setLocation((prev) => ({
+        lat: data.lat ?? prev.lat,
+        lng: data.lng ?? prev.lng,
+        eta: data.eta ?? prev.eta,
+        speed: data.speed ?? prev.speed,
+        updated: "Live",
+      }));
+      pushActivity({
+        time: new Date().toLocaleTimeString(),
+        title: "Location update",
+        description: `New position ${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}`,
+        type: "location",
+      });
+      saveLocationLog(data);
+    });
+
+    const unsubAlerts = subscribeToTopic("shipment/main/alerts", (data) => {
+      const payload =
+        typeof data === "string"
+          ? { description: data, severity: "Warning" }
+          : data;
+      setAlerts((prev) => [payload, ...prev].slice(0, 6));
+      pushActivity({
+        time: new Date().toLocaleTimeString(),
+        title: "Alert triggered",
+        description: payload.description || "New alert received",
+        type: "alert",
+      });
+    });
+
+    return () => {
+      unsubSensors();
+      unsubStatus();
+      unsubLocation();
+      unsubAlerts();
+    };
   }, []);
 
-  return (
-    <div className="min-h-screen bg-[#0D1117] text-white">
-      {/* NAVBAR */}
-      <Navbar isLoggedIn={true} />
-
-      {/* MAIN CONTENT */}
-      <div className="px-10 py-24">
-        {/* Breadcrumb */}
-        <div className="text-sm text-gray-400 mb-3">
-          All Shipments / <span className="text-white">Shipment {id}</span>
-        </div>
-
-        {/* Page Title */}
-        <h1 className="text-4xl font-bold mb-2">Shipment {id}</h1>
-        <p className="text-gray-400 mb-10">
-          Real-time monitoring and summary of the shipment's journey.
-        </p>
-
-        {/* Shipment Info Cards */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          <CompactInfoCard label="Status" value="In Transit" dot="green" />
-          <CompactInfoCard label="Origin" value="New York, USA" />
-          <CompactInfoCard label="Destination" value="London, UK" />
-          <CompactInfoCard label="Est. Arrival" value="July 25, 2024" />
-        </div>
-
-        {/* Sensor Summary */}
-        <div className="grid grid-cols-4 gap-6 mb-10">
-          <StatCard label="Temperature" value={sensors.temp} status="safe" />
-          <StatCard label="Humidity" value={sensors.hum} status="safe" />
-          <StatCard label="Door Status" value={sensors.door} status="warning" />
-          <StatCard label="Gas Level" value={sensors.smoke} status="critical" />
-        </div>
-           <ShipmentMap />
-        {/* Attached Sensors + Journey Timeline */}
-        <div className="grid grid-cols-3 gap-8 mb-12">
-          {/* Attached Sensors Table */}
-          <div className="col-span-2 bg-[#111827] rounded-2xl p-6">
-            <h2 className="text-2xl font-semibold mb-1">
-              Attached Sensors (4)
-            </h2>
-            <p className="text-gray-400 text-sm mb-4">
-              Average real-time values from all sensors in the shipment.
-            </p>
-
-            <SensorTable sensors={sensors} />
-          </div>
-
-          {/* Journey Timeline */}
-          <div className="bg-[#111827] rounded-2xl p-6">
-            <h3 className="text-xl font-semibold mb-5">Journey Timeline</h3>
-
-            <div className="relative pl-6">
-              <TimelineStep
-                icon={<Truck className="w-5 h-5 text-blue-400" />}
-                title="In Transit"
-                subtitle="Currently in Atlantic Ocean"
-                date="July 22, 2024"
-                active
-              />
-
-              <TimelineStep
-                icon={<MapPin className="w-5 h-5 text-gray-300" />}
-                title="Departed from Origin"
-                subtitle="New York, USA"
-                date="July 20, 2024"
-              />
-
-              <TimelineStep
-                icon={<Calendar className="w-5 h-5 text-gray-300" />}
-                title="Shipment Created"
-                subtitle="New York, USA"
-                date="July 19, 2024"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Historical Data + Alert History */}
-        <div className="grid grid-cols-3 gap-8">
-          {/* Historical Data */}
-          <div className="col-span-2 bg-[#111827] rounded-2xl p-6">
-            <h2 className="text-2xl font-semibold">Historical Data</h2>
-            <p className="text-gray-400 text-sm">Temperature – Last 24 Hours</p>
-
-            {/* Range Buttons */}
-            <div className="flex gap-3 mt-5">
-              {["1H", "6H", "24H", "7D", "Custom"].map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setRange(r)}
-                  className={`px-4 py-1.5 rounded-lg text-sm border transition-colors ${
-                    range === r
-                      ? "bg-blue-600 border-blue-600"
-                      : "border-gray-700 text-gray-300"
-                  }`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-
-            {/* Placeholder Chart */}
-            <div className="mt-6 bg-black/20 rounded-xl flex items-center justify-center overflow-x-auto overflow-y-auto p-2">
-              <img
-                src="/grad.png"
-                alt="Refrost Data Visualization"
-                className="object-contain"
-              />
-            </div>
-          </div>
-
-          {/* Alert History */}
-          <div className="bg-[#111827] rounded-2xl p-6">
-            <h3 className="text-xl font-semibold mb-5">Alert History</h3>
-
-            <AlertItem
-              type="critical"
-              title="High Gas Level Detected"
-              time="Today at 11:32 AM"
-            />
-            <AlertItem
-              type="warning"
-              title="Door Opened"
-              time="Today at 11:15 AM"
-            />
-            <AlertItem
-              type="safe"
-              title="System Normal"
-              time="Yesterday at 9:00 PM"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ---------------- Components ---------------- */
-
-function CompactInfoCard({ label, value, dot }) {
-  const dotColors = {
-    green: "bg-green-400",
-    red: "bg-red-400",
-    yellow: "bg-yellow-400",
-  };
-  return (
-    <div className="bg-[#111827] rounded-xl p-3 flex flex-col justify-center">
-      <div className="text-xs text-gray-300 mb-1">{label}</div>
-      <div className="flex items-center gap-2 text-sm font-semibold">
-        {dot && (
-          <span
-            className={`w-2.5 h-2.5 rounded-full ${
-              dotColors[dot] || "bg-transparent"
-            }`}
-          ></span>
-        )}
-        <span className="text-sm">{value}</span>
-      </div>
-    </div>
-  );
-}
-
-function StatCard({ label, value, status }) {
-  const colorMap = {
-    safe: "text-green-400 bg-green-400/10",
-    warning: "text-yellow-400 bg-yellow-400/10",
-    critical: "text-red-400 bg-red-400/10",
-  };
-
-  return (
-    <div className="bg-[#111827] rounded-2xl p-5">
-      <div className="flex justify-between items-start mb-2">
-        <span className="text-gray-300 text-sm">{label}</span>
-        <span className={`text-xs px-2 py-0.5 rounded-lg ${colorMap[status]}`}>
-          {status.charAt(0).toUpperCase() + status.slice(1)}
-        </span>
-      </div>
-      <div className="text-2xl font-bold">{value}</div>
-    </div>
-  );
-}
-
-function SensorTable({ sensors }) {
-  const sensorData = [
-    { id: "#SN-T456", value: sensors.temp, status: "safe" },
-    { id: "#SN-T457", value: sensors.hum, status: "safe" },
-    { id: "#SN-H112", value: sensors.smoke, status: "critical" },
+  const metricCards = [
     {
-      id: "#SN-D301",
-      value: sensors.vib,
-      status: sensors.vib === "Active" ? "warning" : "safe",
+      label: "Temperature",
+      value: metrics.temperature,
+      icon: <Thermometer className="w-5 h-5" />,
+      note: "Live reading",
+    },
+    {
+      label: "Humidity",
+      value: metrics.humidity,
+      icon: <Droplets className="w-5 h-5" />,
+      note: "Humidity level",
+    },
+    {
+      label: "CO2",
+      value: metrics.gas,
+      icon: <Zap className="w-5 h-5" />,
+      note: "Air quality",
+    },
+    {
+      label: "Vibration",
+      value: metrics.vibration,
+      icon: <Activity className="w-5 h-5" />,
+      note: "Movement index",
+    },
+    {
+      label: "Status",
+      value: metrics.status,
+      icon: <ShieldAlert className="w-5 h-5" />,
+      note: "Safety state",
     },
   ];
 
-  const badgeMap = {
-    safe: "bg-green-900/40 text-green-300 border border-green-700",
-    warning: "bg-yellow-900/40 text-yellow-300 border border-yellow-700",
-    critical: "bg-red-900/40 text-red-300 border border-red-700",
-  };
+  const statusBadge = statusAccent[overview.status] || statusAccent.default;
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
-        <thead className="text-gray-400 border-b border-gray-800">
-          <tr>
-            <th className="pb-3 pr-6">Sensor ID</th>
-            <th className="pb-3 pr-6">Value</th>
-            <th className="pb-3">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sensorData.map((s) => (
-            <tr
-              key={s.id}
-              className="border-b border-gray-800 hover:bg-[#161a1f]"
-            >
-              <td className="py-3 text-blue-300 font-semibold">{s.id}</td>
-              <td className="py-3">{s.value}</td>
-              <td className="py-3">
-                <span
-                  className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${
-                    badgeMap[s.status]
-                  }`}
-                >
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      s.status === "safe"
-                        ? "bg-green-400"
-                        : s.status === "warning"
-                        ? "bg-yellow-400"
-                        : "bg-red-400"
-                    }`}
-                  ></span>
-                  {s.status.charAt(0).toUpperCase() + s.status.slice(1)}
+    <div className="min-h-screen bg-[#07101c] text-white pb-16">
+      <Navbar isLoggedIn={true} />
+
+      <main className="max-w-[1600px] mx-auto px-6 lg:px-10 pt-24 space-y-8">
+        <section className="grid gap-6 xl:grid-cols-[1.6fr_0.9fr]">
+          <div className="rounded-[32px] border border-white/10 bg-[#0d1724] p-8 shadow-[0_40px_120px_rgba(0,0,0,0.18)]">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm uppercase tracking-[0.3em] text-slate-400">
+                  Shipment command center
+                </p>
+                <h1 className="text-4xl font-semibold tracking-tight mt-3">
+                  Shipment {shipmentId}
+                </h1>
+                <p className="mt-3 text-slate-400 max-w-2xl">
+                  Premium cold-chain monitoring for a single active shipment.
+                  Live sensor telemetry, route monitoring, and alert handling in
+                  one pane.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 rounded-3xl bg-white/5 border border-white/10 px-5 py-4 w-full sm:w-auto">
+                <span className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                  Current status
                 </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
+                <span
+                  className={`inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold ${statusBadge}`}
+                >
+                  {overview.status}
+                </span>
+              </div>
+            </div>
 
-function TimelineStep({ icon, title, subtitle, date, active }) {
-  return (
-    <div className="relative mb-8 pl-6">
-      <div className="absolute left-0 top-0 -ml-0.5">
-        <div
-          className={`flex items-center justify-center w-7 h-7 rounded-full ${
-            active ? "bg-blue-600" : "bg-[#0f172a]"
-          }`}
-        >
-          {icon}
-        </div>
-      </div>
-      <div className="ml-10">
-        <div className="flex items-center justify-between">
-          <div
-            className={`font-semibold ${
-              active ? "text-white" : "text-gray-200"
-            }`}
-          >
-            {title}
+            <div className="mt-8 grid gap-4 md:grid-cols-3">
+              <InfoChip
+                icon={<MapPin className="w-4 h-4 text-cyan-300" />}
+                label="Route"
+                value={overview.route}
+              />
+              <InfoChip
+                icon={<Clock3 className="w-4 h-4 text-slate-300" />}
+                label="ETA"
+                value={overview.eta}
+              />
+              <InfoChip
+                icon={<Wifi className="w-4 h-4 text-slate-300" />}
+                label="Connection"
+                value={overview.connection}
+              />
+            </div>
           </div>
-          <div className="text-gray-500 text-xs">{date}</div>
-        </div>
-        <div className="text-gray-400 text-sm mt-1">{subtitle}</div>
-      </div>
+
+          <div className="rounded-[32px] border border-white/10 bg-[#0d1724] p-6 grid gap-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm uppercase tracking-[0.3em] text-slate-400">
+                  Live summary
+                </p>
+                <h2 className="text-2xl font-semibold mt-2">
+                  Telemetry in focus
+                </h2>
+              </div>
+              <span className="text-sm text-slate-400">
+                Updated {overview.lastUpdated}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <SmallMetric label="Battery" value={overview.battery} />
+              <SmallMetric label="Alerts" value={alerts.length.toString()} />
+            </div>
+            <div className="rounded-[28px] border border-white/10 bg-[#07101c] p-4 text-sm text-slate-300">
+              <p className="font-medium text-white">Operations</p>
+              <p className="mt-2 text-slate-400">
+                This dashboard operates on a real-time MQTT feed and persists
+                critical sensor logs into Firestore.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-5 xl:grid-cols-5">
+          {metricCards.map((card) => (
+            <div
+              key={card.label}
+              className="rounded-[28px] border border-white/10 bg-[#0d1724] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.14)]"
+            >
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <div className="rounded-2xl bg-white/5 p-3 text-slate-200">
+                  {card.icon}
+                </div>
+                <span className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                  {card.note}
+                </span>
+              </div>
+              <div className="text-3xl font-semibold text-white">
+                {card.value}
+              </div>
+              <div className="mt-2 text-sm text-slate-400">{card.label}</div>
+            </div>
+          ))}
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-[1.55fr_0.95fr]">
+          <div className="rounded-[32px] border border-white/10 bg-[#0d1724] p-6">
+            <ShipmentMap
+              position={[location.lat, location.lng]}
+              eta={location.eta}
+              speed={location.speed}
+              lastUpdate={location.updated}
+            />
+          </div>
+
+          <div className="rounded-[32px] border border-white/10 bg-[#0d1724] p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <p className="text-sm uppercase tracking-[0.3em] text-slate-400">
+                  Activity feed
+                </p>
+                <h2 className="text-2xl font-semibold mt-2">Recent events</h2>
+              </div>
+              <span className="text-sm text-slate-400">Live stream</span>
+            </div>
+            <div className="space-y-4">
+              {activity.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-white/10 p-8 text-center text-slate-400">
+                  Waiting for live telemetry…
+                </div>
+              ) : (
+                activity.map((item, index) => (
+                  <FeedItem key={`${item.time}-${index}`} event={item} />
+                ))
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* DEBUG PANEL */}
+        <section className="fixed bottom-6 right-6 z-50">
+          <button
+            onClick={() => setShowDebug(!showDebug)}
+            className="flex items-center gap-2 rounded-full bg-slate-700 hover:bg-slate-600 text-white px-4 py-3 shadow-lg transition"
+          >
+            <Bug className="w-5 h-5" />
+            Debug
+          </button>
+
+          {showDebug && (
+            <div className="absolute bottom-16 right-0 w-96 rounded-2xl border border-white/20 bg-[#0d1724] p-6 shadow-xl space-y-4">
+              <h3 className="font-semibold text-white">MQTT Diagnostics</h3>
+
+              <div className="space-y-3 text-sm">
+                {(() => {
+                  const state = getClientState();
+                  return (
+                    <>
+                      <div className="rounded-lg bg-[#07101c] p-4 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`w-3 h-3 rounded-full animate-pulse ${state.connected ? "bg-emerald-500" : "bg-red-500"}`}
+                          />
+                          <span className="text-slate-300 font-medium">
+                            {state.connected ? "✓ Connected" : "✗ Disconnected"}
+                          </span>
+                        </div>
+                        {state.reconnecting && (
+                          <div className="text-amber-300 text-xs">
+                            Reconnecting (attempt {state.connectionAttempts})...
+                          </div>
+                        )}
+                        <div className="text-xs text-slate-400 font-mono break-all">
+                          {state.brokerUrl}
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg bg-[#07101c] p-4">
+                        <div className="text-xs text-slate-400 mb-2">
+                          Active subscriptions
+                        </div>
+                        {state.topics.length > 0 ? (
+                          <div className="space-y-1 text-xs text-slate-300 font-mono">
+                            {state.topics.map((t) => (
+                              <div key={t} className="flex items-center gap-2">
+                                <span className="text-cyan-400">→</span> {t}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-slate-500 text-xs">
+                            No active subscriptions
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+
+              <button
+                onClick={testMqtt}
+                className="w-full rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium py-2 transition"
+              >
+                Send test data
+              </button>
+
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Click "Send test data" to publish sample MQTT messages to test
+                the connection. Check DevTools Console for detailed logs.
+              </p>
+            </div>
+          )}
+        </section>
+      </main>
     </div>
   );
 }
 
-function AlertItem({ type, title, time }) {
-  const dotColor = {
-    critical: "bg-red-500",
-    warning: "bg-yellow-400",
-    safe: "bg-green-400",
-  };
+function InfoChip({ icon, label, value }) {
+  return (
+    <div className="rounded-3xl border border-white/10 bg-[#07101c] p-5">
+      <div className="flex items-center gap-3 mb-3 text-slate-300">
+        {icon}
+        <span className="text-xs uppercase tracking-[0.3em]">{label}</span>
+      </div>
+      <p className="font-semibold text-white">{value}</p>
+    </div>
+  );
+}
+
+function SmallMetric({ label, value }) {
+  return (
+    <div className="rounded-3xl border border-white/10 bg-[#07101c] p-4">
+      <p className="text-xs uppercase tracking-[0.25em] text-slate-400">
+        {label}
+      </p>
+      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
+    </div>
+  );
+}
+
+function FeedItem({ event }) {
+  const tone =
+    {
+      sensor: "bg-cyan-500/10 border-cyan-500/20 text-cyan-300",
+      status: "bg-amber-500/10 border-amber-500/20 text-amber-300",
+      location: "bg-sky-500/10 border-sky-500/20 text-sky-300",
+      alert: "bg-rose-500/10 border-rose-500/20 text-rose-300",
+    }[event.type] || "bg-slate-700/40 border-slate-500/20 text-slate-300";
 
   return (
-    <div className="flex items-start gap-3 mb-4">
-      <div className={`w-3 h-3 rounded-full mt-1 ${dotColor[type]}`}></div>
-      <div>
-        <div className="font-medium">{title}</div>
-        <div className="text-gray-400 text-sm">{time}</div>
+    <div className={`rounded-3xl border px-4 py-4 ${tone}`}>
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-semibold text-white">{event.title}</p>
+        <span className="text-xs uppercase tracking-[0.2em] text-slate-400">
+          {event.time}
+        </span>
       </div>
+      <p className="mt-2 text-sm text-slate-200">{event.description}</p>
     </div>
   );
 }
